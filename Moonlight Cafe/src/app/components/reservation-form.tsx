@@ -16,11 +16,45 @@ export function ReservationForm() {
     guests: ""
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit reservation. Please try again.');
+      }
+
+      setSubmitted(true);
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        date: "",
+        time: "",
+        guests: ""
+      });
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (err: any) {
+      console.error('Submit reservation error:', err);
+      setError(err.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -106,6 +140,11 @@ export function ReservationForm() {
             </motion.div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-[family-name:var(--font-body)]">
+                  {error}
+                </div>
+              )}
               <div>
                 <Label className="text-[#800020] font-[family-name:var(--font-sans)] mb-2 flex items-center gap-2">
                   <User className="w-4 h-4 text-[#D4AF37]" />
@@ -205,9 +244,10 @@ export function ReservationForm() {
 
               <Button
                 type="submit"
-                className="w-full bg-[#800020] hover:bg-[#5c0e1f] text-[#FFF8E7] rounded-none py-6 font-[family-name:var(--font-sans)] tracking-wider uppercase border-2 border-[#D4AF37] transition-all"
+                disabled={isSubmitting}
+                className="w-full bg-[#800020] hover:bg-[#5c0e1f] text-[#FFF8E7] rounded-none py-6 font-[family-name:var(--font-sans)] tracking-wider uppercase border-2 border-[#D4AF37] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Confirm Reservation
+                {isSubmitting ? "Confirming..." : "Confirm Reservation"}
               </Button>
             </form>
           )}
